@@ -2,7 +2,13 @@
 
 ## Purpose — why this repository exists
 
-This project was built as a **job application prototype for Tremium Software**. It demonstrates device-free Wi-Fi motion sensing (delivered PoC), supporting ML research documentation, and a credible roadmap toward after-hours retail security—without naming internal codenames in the docs.
+This project was built as a **job application prototype for Tremium Software**.
+
+**Delivered now:** Windows Wi-Fi motion PoC (calibration, detection, operator UI) plus rigorous ML experiment reports in [`model-training/`](model-training/).
+
+**Target system:** A **geometrically placed ESP32 grid** (e.g. across a mall floor) with **mandatory per-site calibration**, fusing RF observations into **(x, y, z) motion tracks** over that volume; **custom-trained sequence models** interpret events and cut false alarms; the stack runs **standalone** or **integrates with** existing SOC/VMS/camera workflows. Through-wall awareness is an RF+AI goal, not video analytics.
+
+Full roadmap and deployment concept: [`PORTFOLIO.md`](PORTFOLIO.md).
 
 ---
 

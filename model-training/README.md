@@ -2,7 +2,9 @@
 
 Documentation for the **WHT-LM** research line: WHT mixing, **BCM** plasticity, and dual-path **Model1** (proposal) + **Model2** (causal verifier). Supports the hybrid ML layer described in [`../PORTFOLIO.md`](../PORTFOLIO.md).
 
-Part of a **Tremium Software job application prototype** (see root [`README.md`](../README.md)). Training scripts referenced in reports use neutral filenames; legacy code may still use older path aliases.
+Part of a **Tremium Software job application prototype** (see root [`README.md`](../README.md)).
+
+**Production intent:** Models trained with this methodology (especially dual-path **propose → verify**) are meant to run on **time-series RF features** from a calibrated **ESP32 grid**, turning fused **(x, y, z)** tracks into interpreted security events—independently or as a supplement to SOC/VMS. Training scripts referenced in reports use neutral filenames; legacy code may still use older path aliases.
 
 ---
 

@@ -6,7 +6,62 @@
 
 This repository is a **job application prototype for Tremium Software**. It packages a working Wi-Fi motion PoC, rigorous ML experiment write-ups, and a product narrative aimed at after-hours retail security.
 
-Technical depth for the sensing stack lives in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+### Target product (north star)
+
+Build a **standalone or integratable AI-assisted security layer** for a **fixed physical area** (e.g. a shopping mall wing, warehouse aisle, or closed floor):
+
+1. **ESP32 nodes** placed at **regular geometric intervals** on a floor plan (corners, corridor spacing, elevation where needed)—enough density that the volume is **observable**, not just “something moved on the network.”
+2. **Site calibration** on that floor (empty-night baseline, furniture map, cleaning windows, known AP layout) so each node’s RF observations map into a **shared coordinate frame**.
+3. **Continuous capture of movement as (x, y, z) tracks** over time inside the calibrated volume—plus event metadata (speed class, duration, zone ID, confidence).
+4. **Interpretation** via **custom-trained sequence models** documented under [`model-training/`](model-training/) (dual-path propose → verify, leakage-aware training)—to classify motion type, suppress HVAC/cleaning false positives, and support **through-wall** presence where multipath + multi-node geometry allow it (RF sensing, not video).
+
+The system may run **independently** (metadata-only alerts, audit log) or **alongside** existing security (SOC, VMS presets, camera bookmarks on XYZ events)—same events, no dependency on a single vendor stack.
+
+**Today in this repo:** Windows **RSSI PoC** (Python + .NET) proving calibration, VAR/DEL/PTP detection, and operator tooling. **Next engineering:** ESP32 firmware, grid survey tools, fusion service, field retraining of the WHT-LM verifier on site captures.
+
+Technical depth for the **current** sensing stack lives in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+---
+
+### Deployment concept (example: mall floor)
+
+```mermaid
+flowchart LR
+    subgraph Floor["Calibrated floor plan"]
+        N1["ESP32"]
+        N2["ESP32"]
+        N3["ESP32"]
+        N4["ESP32"]
+        N5["ESP32 ..."]
+    end
+    N1 & N2 & N3 & N4 & N5 --> Hub["Fusion hub"]
+    Hub --> XYZ["(x,y,z) tracks + events"]
+    XYZ --> ML["Custom sequence model"]
+    ML --> Out["Standalone alerts OR SOC/VMS feed"]
+```
+
+| Principle | Detail |
+|-----------|--------|
+| **Density** | Nodes on a **regular grid** (spacing driven by wavelength, wall materials, and required XYZ accuracy)—more nodes → better multilateration / tomography stability. |
+| **Calibration** | Mandatory per site: quiet baseline, anchor positions, zone polygons, optional “truth” walks for supervised alignment. |
+| **Output** | Time-stamped **XYZ** (relative to site origin), zone label, motion class, confidence—not identity. |
+| **AI role** | [`model-training/`](model-training/) defines **how** we train verifiers; production uses **site-specific** weights on RF time-series from the ESP32 grid. |
+
+---
+
+## Development roadmap (summary)
+
+| Step | Deliverable | Status |
+|------|-------------|--------|
+| **0** | Windows RSSI engine, calibration, operator UI, test export | **Done** (this repo) |
+| **1** | **Site calibration kit** — floor plan, zone polygons, anchor XYZ, day/night profiles | Planned |
+| **2** | **ESP32 geometric grid** — synchronized RF samples uplinked with node pose metadata | Planned |
+| **3** | **Localization & tracking** — fuse multi-node streams into **(x, y, z)** trajectories inside calibrated volume | Planned |
+| **4** | **Custom ML interpreter** — field-tuned sequence model (propose → verify) for motion class + false-alarm suppression | Research documented; field training planned |
+| **5** | **Through-wall & occlusion** — denser grid + CSI-capable paths where RSSI-only is insufficient | R&D |
+| **6** | **Integration** — standalone dashboard **or** SOC/VMS/API hooks (supporting role, not lock-in) | Planned |
+
+**Honest scope note:** The **delivered PoC** does not yet output XYZ; it validates detection, calibration discipline, and ML methodology. **XYZ + full-area coverage** are explicit **product goals** tied to the ESP32 grid and per-site calibration above—not claims about the current laptop demo.
 
 ---
 
@@ -139,18 +194,20 @@ When malls are closed, coverage gaps, patrol cost, and delayed awareness increas
 |-------|--------|---------|
 | **0** | Current PoC | Motion yes/no, thresholds, operator tooling |
 | **1** | Night profile per site | Empty-building calibration; cleaning-window rules |
-| **2** | Distributed edge grid | Corridor / corner nodes; centralized zone fusion |
-| **3** | Hybrid ML layer | Custom sequence encoder on multi-node RF time series; **verifier** suppresses HVAC / routine false positives |
+| **2** | **ESP32** geometric grid | Regular placement; per-node RF streams + pose; centralized fusion |
+| **3** | **XYZ tracking + hybrid ML** | Multi-node localization; custom sequence encoder/verifier on RF time series |
 | **4** | Operations | SOC alarms, VMS preset, audit log (time, zone, severity, confidence) |
 
 ### What we detect (honest scope)
 
-| In scope | Out of scope (without new sensors) |
+| In scope (today → planned) | Out of scope (without new sensors / training) |
 |----------|-------------------------------------|
-| Unauthorized **movement** / presence | Centimeter **(x, y)** maps |
-| **Zone** labels (wing, corridor, level) | Person identity / face |
-| Event duration & severity class | Reliable multi-person count |
-| Confidence-scored alerts | Guaranteed zero false alarms |
+| Unauthorized **movement** / presence (PoC today) | Person identity / face |
+| **Planned:** **(x, y, z)** tracks over calibrated floor (ESP32 grid + fusion) | Guaranteed zero false alarms |
+| **Zone** + wing / corridor labels | “See through walls” as **video** |
+| **Planned:** motion **behind walls** via multi-node RF + custom ML (step 5) | Sub-centimeter RTK without survey anchors |
+| Standalone **or** SOC/VMS-integrated operation | |
+| Event duration, speed class, confidence | |
 
 ### Hybrid detection architecture (planned)
 
@@ -161,11 +218,12 @@ sequenceDiagram
     participant ML as Custom sequence verifier
     participant Ops as Security operations
 
-    Edge->>Rule: RSSI windows per zone
-    Rule->>ML: Candidate incident + features
-    ML->>ML: Propose class / zone / confidence
+    Edge->>Rule: Per-node RF windows + node pose
+    Rule->>Rule: Fuse to (x,y,z) track + zone
+    Rule->>ML: Candidate track + feature sequence
+    ML->>ML: Propose class / interpret motion
     ML->>Rule: Verify or suppress
-    Rule->>Ops: Confirmed zone alert
+    Rule->>Ops: Confirmed XYZ event (standalone or SOC/VMS)
 ```
 
 - **Propose:** multi-node pattern suggests intrusion vs benign (cleaning, HVAC).
@@ -186,10 +244,11 @@ sequenceDiagram
 
 | Goal | Today | Planned |
 |------|-------|---------|
-| Device-free sensing | ✅ RSSI pipeline | Edge grid |
-| Explainable core | ✅ VAR / DEL / PTP | + confidence & cause codes |
-| Learned fusion | Documented ML methodology | Domain-trained sequence verifier |
-| Enterprise integration | PoC UI / logs | SOC / VMS hooks |
+| Device-free sensing | ✅ RSSI pipeline | ESP32 geometric grid |
+| Spatial output | Zone hints only (PoC) | **(x, y, z)** tracks after calibration |
+| Explainable core | ✅ VAR / DEL / PTP | + ML cause codes |
+| Learned fusion | Documented ML methodology | Site-trained sequence verifier |
+| Deployment mode | PoC UI / logs | Standalone **or** SOC / VMS / API |
 | Rigorous ML culture | Leakage + ablation discipline | Same gates on field models |
 
 ---
