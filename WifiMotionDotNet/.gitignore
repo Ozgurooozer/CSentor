@@ -1,0 +1,20 @@
+# .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Build / publish
+[Dd]ebug/
+[Rr]elease/
+x64/
+publish/
+
+# Rider
+.idea/
+
+# Uygulama tarafindan uretilen dosyalar
+test_output/
+motion_log.txt
+rssi_log.txt

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.setup_done
+.wfm_pid
+
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+[Dd]ebug/
+[Rr]elease/
+**/publish/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Runtime / local config (regenerate on device)
+motion_log.txt
+rssi_log.txt
+wifi_motion_config.json
+debug.log
+netsh_test.log
+test_output/
+
+# Logs
+*.log
