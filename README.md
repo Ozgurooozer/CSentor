@@ -2,7 +2,7 @@
 
 ## Purpose — why this repository exists
 
-This project was built as a **job application prototype for Tremium Software**.
+This project was built as a **job application prototype*.
 
 **Delivered now:** Windows Wi-Fi motion PoC (calibration, detection, operator UI) plus rigorous ML experiment reports in [`model-training/`](model-training/).
 
